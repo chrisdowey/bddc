@@ -124,8 +124,7 @@ wget=wget
 # 1 -> log errors (recommended for WRT environments)
 # 0 -> log nothing
 LOGGING=3
-LOGFILE=/var/log/bddc.log 
-#LOGFILE=/tmp/bddc.log # (recommended for WRT environments)
+LOGFILE=/tmp/bddc.log # (recommended for WRT environments)
 
 # cache file for ip address
 ip_cache=/tmp/bddc-ip-add.cache
@@ -150,11 +149,11 @@ TUSERPWD="USER:PASSWD"
 # 1 -> output of ifconfig
 # 2 -> remote website
 # 3 -> router info over http
-CHECKMODE=2
+CHECKMODE=1
 
 #################################
 # ad 1: your internet interface (eth0,eth1,en0,en1...)
-inet_if=eth0
+inet_if=enp0s25
 
 #################################
 # ad 2: remote url to get ip from over http
@@ -253,12 +252,12 @@ lafonera_url=cgi-bin/status.sh
 # 2 -> use dyndns.org
 # 3 -> use no-ip.com
 # T -> testing option (doing nothing)
-IPSYNMODE=T
+IPSYNMODE=1
 
 #------------afraid.org-----------------
 # ad 1: your update url using afraid.org
 # enter your syndication url from afraid.org
-afraid_url=http://freedns.afraid.org/dynamic/update.php...........................
+afraid_url=https://freedns.afraid.org/dynamic/update.php?...
 #-----------/afraid.org-----------------
 
 
@@ -830,50 +829,6 @@ case "$CHECKMODE" in
         ;;
 esac
 
-#---------IP-checking-part-----------------------
-# check if ip is in a private range == not visible to others
-if [ "$current_ip" != "$old_ip" ]; then
-    first_part=`echo $current_ip | cut -d . -f 1`
-    second_part=`echo $current_ip | cut -d . -f 2`
-    case $current_ip in
-        127.0.0.1)
-                msg_error "IP address $current_ip is localhost"
-                exit 11
-                ;;
-        255.255.255.255)
-                msg_error "IP address $current_ip is broadcast"
-                exit 11
-                ;;
-    esac
-    case $first_part in
-        10)
-                msg_error "IP address $current_ip is part of private network"
-                exit 11
-                ;;
-        169)
-            if [ "$second_part" == "254" ]; then
-                msg_error "IP address $current_ip is part of private network"
-                exit 11
-            fi
-                ;;
-        172)
-            if [ $second_part -ge 16 ] && [ $second_part -le 31 ]
-             then
-                msg_error "IP address $current_ip is part of private network"
-                exit 11
-            fi
-                ;;
-        192)
-            if [ "$second_part" == "168" ]; then
-                msg_error "IP address $current_ip is part of private network"
-                exit 11
-            fi
-                ;;
-    esac
-msg_tattle "IP  $current_ip seems alright, passing to syndication part"
-fi
-
-
 
 #---------IP-syndication-part--------------------
 old_ip=`$cat $ip_cache`
@@ -884,7 +839,7 @@ if [ "$current_ip" != "$old_ip" ]
         # afraid.org
         1)
       	    # afraid.org gets IP over the http request of your url
-            afraid_feedback=`$fetcher --connect-timeout "${remote_timeout}" -A "${bddc_name}" -s "$afraid_url"`
+            afraid_feedback=`$fetcher --connect-timeout "${remote_timeout}" -A "${bddc_name}" -s "$afraid_url&address=$current_ip"`
             case $? in
                 28) msg_error "timeout (${remote_timeout} second(s) tried on host: ${afraid_url})"; 
                     exit 28 ;;
